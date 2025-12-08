@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="da">
+  <head>
+    <meta charset="utf-8">
+    <title>Medibox – oversigt</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 2rem;
+        background: #f5f5f5;
+      }
+      h1, h2 {
+        margin-bottom: 0.5rem;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        margin-bottom: 2rem;
+        background: white;
+      }
+      th, td {
+        border: 1px solid #ccc;
+        padding: 0.5rem;
+        text-align: left;
+      }
+      th {
+        background: #eee;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Medibox – oversigt for medarbejdere</h1>
+
+    <!-- Tabel 1: Medicinboks-hændelser -->
+    <h2>Medicinboks (åben / lukket)</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Enhed</th>
+          <th>Status</th>
+          <th>ADC-værdi</th>
+          <th>Tidspunkt</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in box_events %}
+        <tr>
+          <td>{{ e.device }}</td>
+          <td>{{ "Åben" if e.box_open else "Lukket" }}</td>
+          <td>{{ e.adc_value or "-" }}</td>
+          <td>{{ e.timestamp }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="4">Ingen hændelser endnu.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <!-- Tabel 2: Puls-målinger -->
+    <h2>Pulsmålinger</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Enhed</th>
+          <th>Puls (bpm)</th>
+          <th>Tidspunkt</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in pulse_events %}
+        <tr>
+          <td>{{ e.device }}</td>
+          <td>{{ e.bpm }}</td>
+          <td>{{ e.timestamp }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="3">Ingen pulsmålinger endnu.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <!-- Tabel 3: Vibrations-hændelser -->
+    <h2>Armbånd – påmindelser (vibration)</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Enhed</th>
+          <th>Styrke</th>
+          <th>Tidspunkt</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in vibration_events %}
+        <tr>
+          <td>{{ e.device }}</td>
+          <td>{{ e.strength if e.strength is not none else "-" }}</td>
+          <td>{{ e.timestamp }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="3">Ingen påmindelser sendt endnu.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </body>
+</html>

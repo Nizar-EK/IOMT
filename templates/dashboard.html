@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="da">
+<head>
+    <meta charset="utf-8">
+    <title>Medicin-overblik</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: #f5f5f5;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1, h2 {
+            color: #222;
+        }
+
+        .wrapper {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: #ffffff;
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 8px;
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #ddd;
+            text-align: left;
+        }
+
+        th {
+            background: #f0f0f0;
+            font-weight: 600;
+        }
+
+        tr:nth-child(even) td {
+            background: #fafafa;
+        }
+
+        .status-open {
+            color: #0b7a27;
+            font-weight: 600;
+        }
+
+        .status-closed {
+            color: #b00020;
+            font-weight: 600;
+        }
+
+        .status-yes {
+            color: #0b7a27;
+            font-weight: 600;
+        }
+
+        .status-no {
+            color: #b00020;
+            font-weight: 600;
+        }
+
+        .small {
+            font-size: 0.8rem;
+            color: #666;
+        }
+
+        .no-data {
+            padding: 6px 0;
+            color: #666;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+<div class="wrapper">
+    <h1>Medicin reminder – oversigt</h1>
+    <p class="small">
+        Denne side viser seneste hændelser for borgerne:
+        hvornår boksen har været åbnet/lukket, pulsmålinger og hvornår armbåndet har vibreret.
+    </p>
+
+    <!-- BOKS-EVENTS -->
+    <div class="card">
+        <h2>Medicinboks – åbnet / lukket</h2>
+
+        {% if box_events and box_events|length > 0 %}
+            <table>
+                <thead>
+                <tr>
+                    <th>Borger</th>
+                    <th>Status</th>
+                    <th>Tidspunkt</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for row in box_events %}
+                    <tr>
+                        <td>{{ row["navn"] }}</td>
+                        <td>
+                            {% if row["box_open"] %}
+                                <span class="status-open">Åben</span>
+                            {% else %}
+                                <span class="status-closed">Lukket</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ row["created_at"] }}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div class="no-data">Ingen registrerede hændelser endnu.</div>
+        {% endif %}
+    </div>
+
+    <!-- PULS-EVENTS -->
+    <div class="card">
+        <h2>Pulsmålinger</h2>
+
+        {% if pulse_events and pulse_events|length > 0 %}
+            <table>
+                <thead>
+                <tr>
+                    <th>Borger</th>
+                    <th>Puls (slag pr. minut)</th>
+                    <th>Tidspunkt</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for row in pulse_events %}
+                    <tr>
+                        <td>{{ row["navn"] }}</td>
+                        <td>{{ row["bpm"] }}</td>
+                        <td>{{ row["created_at"] }}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div class="no-data">Ingen pulsmålinger registreret endnu.</div>
+        {% endif %}
+    </div>
+
+    <!-- VIBRATION-EVENTS -->
+    <div class="card">
+        <h2>Påmindelser – armbånd</h2>
+
+        {% if vibration_events and vibration_events|length > 0 %}
+            <table>
+                <thead>
+                <tr>
+                    <th>Borger</th>
+                    <th>Påmindelse sendt?</th>
+                    <th>Tidspunkt</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for row in vibration_events %}
+                    <tr>
+                        <td>{{ row["navn"] }}</td>
+                        <td>
+                            {% if row["signaled"] %}
+                                <span class="status-yes">Ja</span>
+                            {% else %}
+                                <span class="status-no">Nej</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ row["created_at"] }}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div class="no-data">Ingen påmindelser registreret endnu.</div>
+        {% endif %}
+    </div>
+</div>
+</body>
+</html>

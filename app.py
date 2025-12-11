@@ -23,8 +23,8 @@ def get_db_connection():
     conn = psycopg2.connect(
         host="127.0.0.1",
         port="5432",
-        dbname="iomt_db",
-        user="postgres",
+        dbname="iomt",
+        user="iomt_user",
         password="1234",
     )
     return conn

@@ -7,6 +7,8 @@ import secrets
 from datetime import datetime
 import psycopg2
 import psycopg2.extras
+from psycopg2.errors import ForeignKeyViolation
+import re
 
 # ---------- SETUP ----------
 app = APIFlask(__name__)
@@ -21,11 +23,16 @@ def get_db_connection():
     conn = psycopg2.connect(
         host="127.0.0.1",
         port="5432",
-        dbname="iomt_db",      
-        user="postgres",       
-        password="1234",  
+        dbname="iomt_db",
+        user="postgres",
+        password="1234",
     )
     return conn
+
+
+# ---------- REGEX (programmering: Regex) ----------
+PHONE_REGEX = re.compile(r"^(?:\+45\s?)?\d{8}$")
+ROOM_REGEX = re.compile(r"^[A-Za-z0-9]{1,5}$")
 
 
 # ---------- SIMPLE "BRUGERE" / ENHEDER TIL TOKENS ----------
@@ -46,7 +53,6 @@ class TokenOut(Schema):
     token = String()
 
 
-# Her opretter vi to enheder:
 # 1 = ESP32 i medicinboks (LDR + puls)
 # 2 = ESP32 i armbånd (vibrator)
 users = [
@@ -76,6 +82,14 @@ def verify_token(token: str) -> User | None:
 
 
 # ---------- SCHEMAS TIL API ----------
+class BorgerIn(Schema):
+    # Fleksibelt: kun navn er påkrævet
+    navn = String(required=True)
+    telefon = String(required=False)
+    adresse = String(required=False)
+    vaerelse = String(required=False)
+
+
 class BoxEventIn(Schema):
     borger_id = Integer(required=True)
     box_open = Boolean(required=True)   # True = åben, False = lukket
@@ -91,8 +105,7 @@ class VibrationEventIn(Schema):
     signaled = Boolean(required=True)   # True = armbånd har vibreret
 
 
-# ---------- ROUTES ----------
-
+# ---------- ROUTES: GENERELT ----------
 @app.get("/")
 def index():
     # simpelt svar, plus hint om dashboard
@@ -151,7 +164,6 @@ def dashboard():
     finally:
         conn.close()
 
-
     return render_template(
         "dashboard.html",
         box_events=box_events,
@@ -170,6 +182,137 @@ def get_token(id: int):
     return {"token": user.get_token()}
 
 
+# ---------- ROUTES: BORGER CRUD (Programmering: CRUD + Regex) ----------
+
+@app.post("/borger")
+@app.input(BorgerIn)
+def create_borger(json_data):
+    """
+    Opretter en ny borger.
+    Regex bruges til at validere telefon og værelse, hvis de er angivet.
+    """
+    navn = json_data["navn"].strip()
+    telefon = (json_data.get("telefon") or "").strip()
+    adresse = (json_data.get("adresse") or "").strip()
+    vaerelse = (json_data.get("vaerelse") or "").strip()
+
+    # Telefon-validering (kun hvis feltet er udfyldt)
+    if telefon and not PHONE_REGEX.match(telefon):
+        abort(400, "Ugyldigt telefonnummer (skal være 8 cifre, evt. med +45).")
+
+    # Værelse-validering (kun hvis udfyldt)
+    if vaerelse and not ROOM_REGEX.match(vaerelse):
+        abort(400, "Ugyldigt værelseformat (1-5 tegn, kun bogstaver og tal).")
+
+    conn = get_db_connection()
+    try:
+        with conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    INSERT INTO borger (navn, telefon, adresse, vaerelse)
+                    VALUES (%s, %s, %s, %s)
+                    RETURNING id;
+                    """,
+                    (navn, telefon or None, adresse or None, vaerelse or None),
+                )
+                new_id = cur.fetchone()[0]
+    finally:
+        conn.close()
+
+    return {"id": new_id, "navn": navn}, 201
+
+
+@app.get("/borger")
+def list_borgere():
+    """
+    Returnerer liste af borgere.
+    """
+    conn = get_db_connection()
+    try:
+        with conn:
+            with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
+                cur.execute(
+                    """
+                    SELECT id, navn, telefon, adresse, vaerelse
+                    FROM borger
+                    ORDER BY id;
+                    """
+                )
+                rows = cur.fetchall()
+    finally:
+        conn.close()
+
+    return {"borgere": [dict(r) for r in rows]}, 200
+
+
+@app.put("/borger/<int:borger_id>")
+@app.input(BorgerIn)
+def update_borger(borger_id: int, json_data):
+    """
+    Opdaterer en eksisterende borger.
+    Vi kræver stadig navn (schema), men de andre er valgfrie.
+    """
+    navn = json_data["navn"].strip()
+    telefon = (json_data.get("telefon") or "").strip()
+    adresse = (json_data.get("adresse") or "").strip()
+    vaerelse = (json_data.get("vaerelse") or "").strip()
+
+    if telefon and not PHONE_REGEX.match(telefon):
+        abort(400, "Ugyldigt telefonnummer (skal være 8 cifre, evt. med +45).")
+
+    if vaerelse and not ROOM_REGEX.match(vaerelse):
+        abort(400, "Ugyldigt værelseformat (1-5 tegn, kun bogstaver og tal).")
+
+    conn = get_db_connection()
+    try:
+        with conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    UPDATE borger
+                    SET navn = %s,
+                        telefon = %s,
+                        adresse = %s,
+                        vaerelse = %s
+                    WHERE id = %s
+                    RETURNING id;
+                    """,
+                    (navn, telefon or None, adresse or None, vaerelse or None, borger_id),
+                )
+                row = cur.fetchone()
+                if row is None:
+                    abort(404, "Borger ikke fundet.")
+    finally:
+        conn.close()
+
+    return {"status": "updated", "id": borger_id}, 200
+
+
+@app.delete("/borger/<int:borger_id>")
+def delete_borger(borger_id: int):
+    """
+    Sletter en borger. Relaterede events slettes automatisk pga. ON DELETE CASCADE.
+    """
+    conn = get_db_connection()
+    try:
+        with conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "DELETE FROM borger WHERE id = %s RETURNING id;",
+                    (borger_id,),
+                )
+                row = cur.fetchone()
+                if row is None:
+                    abort(404, "Borger ikke fundet.")
+    finally:
+        conn.close()
+
+    return {"status": "deleted", "id": borger_id}, 200
+
+
+# ---------- ROUTES: EVENTS (ESP32 → API → DB) ----------
+
 @app.post("/box-event")
 @auth.login_required
 @app.input(BoxEventIn)
@@ -182,13 +325,16 @@ def box_event(json_data):
     try:
         with conn:
             with conn.cursor() as cur:
-                cur.execute(
-                    """
-                    INSERT INTO box_events (borger_id, box_open)
-                    VALUES (%s, %s);
-                    """,
-                    (borger_id, box_open),
-                )
+                try:
+                    cur.execute(
+                        """
+                        INSERT INTO box_events (borger_id, box_open)
+                        VALUES (%s, %s);
+                        """,
+                        (borger_id, box_open),
+                    )
+                except ForeignKeyViolation:
+                    abort(400, "Ukendt borger_id.")
     finally:
         conn.close()
 
@@ -207,13 +353,16 @@ def pulse_event(json_data):
     try:
         with conn:
             with conn.cursor() as cur:
-                cur.execute(
-                    """
-                    INSERT INTO pulse_events (borger_id, bpm)
-                    VALUES (%s, %s);
-                    """,
-                    (borger_id, bpm),
-                )
+                try:
+                    cur.execute(
+                        """
+                        INSERT INTO pulse_events (borger_id, bpm)
+                        VALUES (%s, %s);
+                        """,
+                        (borger_id, bpm),
+                    )
+                except ForeignKeyViolation:
+                    abort(400, "Ukendt borger_id.")
     finally:
         conn.close()
 
@@ -232,13 +381,16 @@ def vibration_event(json_data):
     try:
         with conn:
             with conn.cursor() as cur:
-                cur.execute(
-                    """
-                    INSERT INTO vibration_events (borger_id, signaled)
-                    VALUES (%s, %s);
-                    """,
-                    (borger_id, signaled),
-                )
+                try:
+                    cur.execute(
+                        """
+                        INSERT INTO vibration_events (borger_id, signaled)
+                        VALUES (%s, %s);
+                        """,
+                        (borger_id, signaled),
+                    )
+                except ForeignKeyViolation:
+                    abort(400, "Ukendt borger_id.")
     finally:
         conn.close()
 
@@ -313,4 +465,5 @@ def get_vibration_events():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)
+

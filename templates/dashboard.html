@@ -103,7 +103,7 @@
                     <th>Tidspunkt</th>
                 </tr>
                 </thead>
-                <tbody>
+                <tbody id="box-events-body">
                 {% for row in box_events %}
                     <tr>
                         <td>{{ row["navn"] }}</td>
@@ -137,7 +137,7 @@
                     <th>Tidspunkt</th>
                 </tr>
                 </thead>
-                <tbody>
+                <tbody id="pulse-events-body">
                 {% for row in pulse_events %}
                     <tr>
                         <td>{{ row["navn"] }}</td>
@@ -165,7 +165,7 @@
                     <th>Tidspunkt</th>
                 </tr>
                 </thead>
-                <tbody>
+                <tbody id="vibration-events-body">
                 {% for row in vibration_events %}
                     <tr>
                         <td>{{ row["navn"] }}</td>
@@ -186,5 +186,27 @@
         {% endif %}
     </div>
 </div>
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script>
+  const socket = io();
+
+  // Når der kommer nyt box_event → reload siden
+  socket.on("box_event", (data) => {
+    console.log("Ny box_event:", data);
+    window.location.reload();
+  });
+
+  // Når der kommer nyt pulse_event → reload siden
+  socket.on("pulse_event", (data) => {
+    console.log("Ny pulse_event:", data);
+    window.location.reload();
+  });
+
+  // Når der kommer nyt vibration_event → reload siden
+  socket.on("vibration_event", (data) => {
+    console.log("Ny vibration_event:", data);
+    window.location.reload();
+  });
+</script>
 </body>
 </html>

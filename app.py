@@ -344,7 +344,6 @@ def box_event(json_data):
     socketio.emit(
         "box_event",
         {"borger_id": borger_id},
-        broadcast=True,
     )
 
     return {"status": "ok"}, 201
@@ -378,7 +377,6 @@ def pulse_event(json_data):
     socketio.emit(
         "pulse_event",
         {"borger_id": borger_id},
-        broadcast=True,
     )
 
     return {"status": "ok"}, 201
@@ -412,7 +410,6 @@ def vibration_event(json_data):
     socketio.emit(
         "vibration_event",
         {"borger_id": borger_id},
-        broadcast=True,
     )
 
     return {"status": "ok"}, 201

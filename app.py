@@ -1,7 +1,6 @@
 # app.py
 from flask import render_template
 from apiflask import APIFlask, Schema, HTTPTokenAuth, abort
-from flask_socketio import SocketIO
 from apiflask.fields import Boolean, Integer, String
 from authlib.jose import jwt, JoseError
 import secrets
@@ -15,8 +14,6 @@ import re
 app = APIFlask(__name__)
 auth = HTTPTokenAuth(scheme="Bearer")
 app.config["SECRET_KEY"] = secrets.token_bytes(32)
-
-socketio = SocketIO(app, cors_allowed_origins="*")
 
 
 def get_db_connection():
@@ -341,11 +338,6 @@ def box_event(json_data):
     finally:
         conn.close()
 
-    socketio.emit(
-        "box_event",
-        {"borger_id": borger_id},
-    )
-
     return {"status": "ok"}, 201
 
 
@@ -374,11 +366,6 @@ def pulse_event(json_data):
     finally:
         conn.close()
 
-    socketio.emit(
-        "pulse_event",
-        {"borger_id": borger_id},
-    )
-
     return {"status": "ok"}, 201
 
 
@@ -406,11 +393,6 @@ def vibration_event(json_data):
                     abort(400, "Ukendt borger_id.")
     finally:
         conn.close()
-
-    socketio.emit(
-        "vibration_event",
-        {"borger_id": borger_id},
-    )
 
     return {"status": "ok"}, 201
 
@@ -483,5 +465,5 @@ def get_vibration_events():
 
 
 if __name__ == "__main__":
-    socketio.run(app, host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)
 

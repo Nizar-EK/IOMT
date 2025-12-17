@@ -39,7 +39,6 @@ ROOM_REGEX = re.compile(r"^[A-Za-z0-9]{1,5}$")
 class User:
     def __init__(self, id: int, secret: str):
         self.id = id
-        # secret kan være en tekst, der beskriver enheden
         self.secret = secret
 
     def get_token(self) -> str:
@@ -83,7 +82,7 @@ def verify_token(token: str) -> User | None:
 
 # ---------- SCHEMAS TIL API ----------
 class BorgerIn(Schema):
-    # Fleksibelt: kun navn er påkrævet
+    #kun navn er påkrævet
     navn = String(required=True)
     telefon = String(required=False)
     adresse = String(required=False)
@@ -108,7 +107,6 @@ class VibrationEventIn(Schema):
 # ---------- ROUTES: GENERELT ----------
 @app.get("/")
 def index():
-    # simpelt svar, plus hint om dashboard
     return {"message": "Medibox API kører – se /dashboard for oversigt"}
 
 
@@ -397,7 +395,7 @@ def vibration_event(json_data):
     return {"status": "ok"}, 201
 
 
-# (valgfrit) JSON-endpoints til jer selv / debugging
+
 @app.get("/box-events")
 def get_box_events():
     conn = get_db_connection()

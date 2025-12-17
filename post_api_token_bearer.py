@@ -12,7 +12,7 @@ def get_token(user_id: int) -> str:
     url = f"{BASE_URL}/token/{user_id}"
     r = requests.post(url)
     r.raise_for_status()
-    raw_token = r.json()["token"]      # fx "eyJhbGciOiJIUzI1NiIs..."
+    raw_token = r.json()["token"]    
     bearer_token = f"Bearer {raw_token}"
     print(f"Modtog token for user {user_id}: {bearer_token}")
     return bearer_token
@@ -28,8 +28,8 @@ def send_box_event(token: str):
         "accept": "application/json",
     }
     data = {
-        "box_open": True,   # fx boksen er blevet åbnet
-        "adc_value": 1500,  # fiktiv LDR-værdi
+        "box_open": True,   
+        "adc_value": 1500,  
     }
     r = requests.post(url, json=data, headers=headers)
     print("box-event:", r.status_code, r.text)
@@ -61,7 +61,7 @@ def send_vibration_event(token: str):
         "accept": "application/json",
     }
     data = {
-        "strength": 80,   # fiktiv vibrationsstyrke (0–100), kan også udelades
+        "strength": 80,   # fiktiv vibrationsstyrke (0–100)
     }
     r = requests.post(url, json=data, headers=headers)
     print("vibration-event:", r.status_code, r.text)

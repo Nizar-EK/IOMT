@@ -127,7 +127,7 @@ def dashboard():
                     FROM box_events e
                     JOIN borger b ON e.borger_id = b.id
                     ORDER BY e.created_at DESC
-                    LIMIT 50;
+                    LIMIT 10;
                     """
                 )
                 box_events = cur.fetchall()
@@ -141,7 +141,7 @@ def dashboard():
                     FROM pulse_events e
                     JOIN borger b ON e.borger_id = b.id
                     ORDER BY e.created_at DESC
-                    LIMIT 50;
+                    LIMIT 10;
                     """
                 )
                 pulse_events = cur.fetchall()
@@ -155,7 +155,7 @@ def dashboard():
                     FROM vibration_events e
                     JOIN borger b ON e.borger_id = b.id
                     ORDER BY e.created_at DESC
-                    LIMIT 50;
+                    LIMIT 10;
                     """
                 )
                 vibration_events = cur.fetchall()
